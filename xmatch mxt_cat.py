@@ -3,7 +3,7 @@
 """
 Created on Mon Jul  3 18:13:05 2023
 
-@author: dt270490
+@author: Damien Turpin (CEA-Saclay)
 """
 
 import crossmatch_utils
