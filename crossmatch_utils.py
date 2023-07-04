@@ -58,7 +58,7 @@ def make_cat_crossmatch(mxt_skycoords,mxt_r90s,cat):
 
     Returns
     -------
-    cat_match
+    cat_match : json
         List of the catalogued sources with a positive match with MXT 
         candidates (json format).
 
@@ -97,12 +97,39 @@ def make_cat_crossmatch(mxt_skycoords,mxt_r90s,cat):
     return cat_match
 
 def get_simbad_galaxy_types():
+    """
+    Return the list of the galaxy taxonomy according to the Simbad DB
+
+    Returns
+    -------
+    list
+        DESCRIPTION.
+
+    """
     
     return ["LSB","bCG","SBG","H2G","EmG","AGN", "SyG", "Sy1", "Sy2", "rG", 
             "LIN", "QSO", "Bla", "BLL", "IG", "PaG", "GrG", "CGG", "ClG", 
             "PCG", "SCG"]
 
 def make_simbad_gal_conesearch(mxt_skycoords,mxt_r90s):
+    """
+    Perform the conesearch query to the Simbad database and select the nearby
+    galaxies inside the MXT R90 errorbox
+
+    Parameters
+    ----------
+    mxt_skycoords : astropy.coordinates.sky_coordinate.SkyCoord
+        SkyCoordinates of the MXT transient candidates.
+    mxt_r90s : list
+        List of the MXT transient candidate error boxes.
+
+    Returns
+    -------
+    simbad_galaxy_match : json
+        List of the nearby galaxies having a positive match with MXT 
+        candidates.
+
+    """
     
     simbad_galaxy_match = {}
     for i in range(len(mxt_r90s)):
