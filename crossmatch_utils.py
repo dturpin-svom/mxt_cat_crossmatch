@@ -5,10 +5,12 @@ Created on Mon Jul  3 18:10:15 2023
 
 @author: Damien Turpin
 """
-
+import numpy as np
 from astropy.io import fits
 import astropy.units as u
 from astropy.coordinates import SkyCoord
+from astroquery.simbad import Simbad
+Simbad.add_votable_fields('otype(opt)','plx', 'distance','typed_id')
 
 def get_cat_data(cat_path):
     """
@@ -39,7 +41,7 @@ def get_cat_data(cat_path):
     return cat_noduplicate, header
 
 
-def make_crossmatch(mxt_skycoords,mxt_r90s,cat):
+def make_cat_crossmatch(mxt_skycoords,mxt_r90s,cat):
     """
     This code performs the crossmatching of the mxt transient candidate
     position with the catalogued x-ray sources positions. It gives back the
@@ -79,18 +81,83 @@ def make_crossmatch(mxt_skycoords,mxt_r90s,cat):
             cat_src_info = {"cat_src_name_xmm":cat_src[0],
                             "cat_src_name":cat_src[8],
                             "cat_name": cat_src[9],
-                            "cat_src_ra":cat_src[1],
-                            "cat_src_dec":cat_src[2],
-                            "cat_src_r90":cat_src[3],
-                            "cat_src_r90_unit":"arcsec",
-                            "cat_src_l":cat_src[4],
-                            "cat_src_b":cat_src[5],
-                            "cat_src_disttomxt": ang_dist[mask_match][k].arcsec,
-                            "cat_src_disttomxt_unit": "arcsec"
+                            "ra":cat_src[1],
+                            "dec":cat_src[2],
+                            "r90":cat_src[3],
+                            "r90_unit":"arcsec",
+                            "l":cat_src[4],
+                            "b":cat_src[5],
+                            "ang_dist_tomxt": ang_dist[mask_match][k].arcsec,
+                            "ang_dist_tomxt_unit": "arcsec"
                             }
             cat_src_matchs.append(cat_src_info)
             k = k+1
             
         cat_match['MXT_cand'+str(i)] = cat_src_matchs
     return cat_match
+
+def get_simbad_galaxy_types():
+    
+    return ["LSB","bCG","SBG","H2G","EmG","AGN", "SyG", "Sy1", "Sy2", "rG", 
+            "LIN", "QSO", "Bla", "BLL", "IG", "PaG", "GrG", "CGG", "ClG", 
+            "PCG", "SCG"]
+
+def make_simbad_gal_conesearch(mxt_skycoords,mxt_r90s):
+    
+    simbad_galaxy_match = {}
+    for i in range(len(mxt_r90s)):
+        sim_match = Simbad.query_region(mxt_skycoords[i], radius=mxt_r90s[i] * u.arcmin)
+        #---- First step we mask all the objects for which we don't know
+        #     the distance
+        mask_dist = ~sim_match['PLX_VALUE'].mask | ~sim_match['Distance_distance'].mask
+        sim_match_sel = sim_match[mask_dist]
+        if not sim_match_sel:
+            print("There is no known nearby galaxy within the MXT R90 error box")
+            cat_gal_matchs = []
+        else:
+           #---- Second step we mask all the Simbad objects for which the OTYPE is not 
+           # compatible with a galaxy type from the SIMBAD galaxy taxonomy
+           mask_galaxy = []
+           for obj in sim_match_sel:
+               mask_galaxy.append(obj['OTYPE_opt_1'] in get_simbad_galaxy_types())
+           gal_match = sim_match_sel[mask_galaxy]
+           cat_gal_matchs = []
+           for gal in gal_match:
+               # compute the galaxy skycoords and the angular distance to the 
+               # MXT position
+               gal_coords = SkyCoord(gal["RA"],gal["DEC"],
+                                   unit=(u.hourangle,u.deg))
+               ang_dist = mxt_skycoords[i].separation(gal_coords)
+               if type(gal['PLX_VALUE']) is np.float64:
+                    dist = (1000./gal['PLX_VALUE'])/1e6 #in Mpc
+                    dist_origin = 'parallax'
+               else:
+                   dist_origin = gal['Distance_bibcode']
+                   if gal['Distance_unit'] == 'Mpc':
+                       dist = gal['Distance_distance']
+                   elif gal['Distance_unit'] == 'kpc':
+                       dist = gal['Distance_distance']/1e3
+                   elif gal['Distance_unit'] == 'pc':
+                       dist = gal['Distance_distance']/1e6
+                   elif gal['Distance_unit'] == 'Gpc':
+                       dist = gal['Distance_distance']*1e3
+               cat_gal_info = {"galaxy_name":gal["MAIN_ID"],
+                               "cat_name":"Simbad",
+                               "ra": gal_coords.ra.degree,
+                               "dec":gal_coords.dec.degree,
+                               "l":gal_coords.galactic.l,
+                               "b":gal_coords.galactic.b,
+                               "distance":dist,
+                               "distance_unit":"Mpc",
+                               "distance_source":dist_origin,
+                               "ang_dist_tomxt": ang_dist.arcsec,
+                               "ang_dist_tomxt_unit": "arcsec"
+                               }
+               cat_gal_matchs.append(cat_gal_info)
+               print("The ",gal["MAIN_ID"]," galaxy ("+"%.2f" % dist+
+                     " Mpc) is located inside the MXT R90 error box!")
+
+        simbad_galaxy_match['MXT_cand'+str(i)] = cat_gal_matchs
+    
+    return simbad_galaxy_match
     
