@@ -12,7 +12,7 @@ from astropy.coordinates import SkyCoord
 
 if __name__ == "__main__":
     # loading cat path information
-    cat_path = "/media/dt270490/9632505A32504203/workspace/SVOM/MXT/"
+    cat_path = "/media/dt270490/Transcend/Workspace/SVOM/MXT/mxt_cat_crossmatch/catalog/"
     cat_name = "MIC-X-ray-input-catalogue-v0.1.fits"
     # loading cat data with no duplicate
     cat, header = crossmatch_utils.get_cat_data(cat_path+cat_name) 
