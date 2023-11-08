@@ -44,7 +44,7 @@ def get_cat_data(cat_path):
 def make_cat_crossmatch(mxt_skycoords,mxt_r90s,cat):
     """
     This code performs the crossmatching of the mxt transient candidate
-    position with the catalogued x-ray sources positions. It gives back the
+    position with the catalogued x-ray source positions. It gives back the
     list cat sources that are compatible with errors with the MXT candidate 
 
     Parameters
@@ -146,7 +146,7 @@ def make_simbad_gal_conesearch(mxt_skycoords,mxt_r90s):
            # compatible with a galaxy type from the SIMBAD galaxy taxonomy
            mask_galaxy = []
            for obj in sim_match_sel:
-               mask_galaxy.append(obj['OTYPE_opt_1'] in get_simbad_galaxy_types())
+               mask_galaxy.append(obj['OTYPE_opt'] in get_simbad_galaxy_types())
            gal_match = sim_match_sel[mask_galaxy]
            cat_gal_matchs = []
            for gal in gal_match:
